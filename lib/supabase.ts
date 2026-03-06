@@ -1,31 +1,29 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-// Lazy singleton — validated at call time, not at module import.
-// This prevents Next.js build from crashing when env vars are absent.
-let _client: SupabaseClient | null = null;
+// ── ADMIN (server-side, service role) ────────────────────────────
+let _admin: SupabaseClient | null = null;
 
-function getClient(): SupabaseClient {
-  if (_client) return _client;
-
+function getAdminClient(): SupabaseClient {
+  if (_admin) return _admin;
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url) throw new Error("Missing env var: SUPABASE_URL");
-  if (!key) throw new Error("Missing env var: SUPABASE_SERVICE_ROLE_KEY");
-
-  _client = createClient(url, key, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+  if (!url) throw new Error("Missing env: SUPABASE_URL");
+  if (!key) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
+  _admin = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-
-  return _client;
+  return _admin;
 }
 
-// Proxy so existing code (supabaseAdmin.from(...)) keeps working unchanged.
 export const supabaseAdmin = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return (getClient() as never)[prop];
-  },
+  get(_t, prop) { return (getAdminClient() as never)[prop]; },
 });
+
+// ── BROWSER (client-side, anon key) ──────────────────────────────
+export function createSupabaseBrowser() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}

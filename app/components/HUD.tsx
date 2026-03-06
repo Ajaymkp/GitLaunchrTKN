@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import styles from "./HUD.module.css";
 import PixelButton from "./PixelButton";
+import { GithubIcon, XIcon } from "./Icons";
 
 interface HUDBadgeProps {
   label: string;
@@ -21,11 +24,47 @@ function HUDBadge({ label, value, color = "primary" }: HUDBadgeProps) {
 }
 
 export default function HUD() {
-  const { data: session, status } = useSession();
+  const [user, setUser]       = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowser();
+
+    // Get current session
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    const supabase = createSupabaseBrowser();
+    await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/launch/new`,
+      },
+    });
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createSupabaseBrowser();
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  const username   = user?.user_metadata?.user_name ?? user?.email ?? "user";
+  const avatarUrl  = user?.user_metadata?.avatar_url;
 
   return (
     <div className={styles.hud}>
-      {/* LEFT: static star bar */}
       <div className={styles.starBar}>
         <span className={styles.starLabel}>ROAD TO 2.5K STARS</span>
         <div className={styles.starTrack}>
@@ -34,51 +73,46 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* RIGHT: badges + auth */}
       <div className={styles.right}>
+        <div className={styles.hudSocials}>
+          <a href="https://github.com" target="_blank" rel="noreferrer" className={styles.hudSocialLink} aria-label="GitHub">
+            <GithubIcon size={14} color="var(--muted)" />
+          </a>
+          <a href="https://x.com" target="_blank" rel="noreferrer" className={styles.hudSocialLink} aria-label="X">
+            <XIcon size={14} color="var(--muted)" />
+          </a>
+        </div>
+
         <div className={styles.badges}>
           <HUDBadge label="DISCORD" value="105" color="primary" />
-          <HUDBadge label="LIVE" value="252" color="success" />
-          <HUDBadge label="★" value="2429" color="warning" />
+          <HUDBadge label="LIVE"    value="252" color="success" />
+          <HUDBadge label="★"       value="2429" color="warning" />
         </div>
 
         <div className={styles.authZone}>
-          {status === "loading" && (
-            <span className={`${styles.authLoading} text-muted`}>···</span>
-          )}
+          {loading && <span className={`${styles.authLoading} text-muted`}>···</span>}
 
-          {status === "unauthenticated" && (
-            <PixelButton
-              variant="primary"
-              size="sm"
-              onClick={() => signIn("github")}
-            >
-              ▶ SIGN IN
+          {!loading && !user && (
+            <PixelButton variant="primary" size="sm" onClick={handleSignIn}>
+              <GithubIcon size={12} color="white" />
+              SIGN IN
             </PixelButton>
           )}
 
-          {status === "authenticated" && session.user && (
+          {!loading && user && (
             <div className={styles.userChip}>
-              {session.user.image && (
+              {avatarUrl && (
                 <Image
-                  src={session.user.image}
-                  alt={session.user.name ?? "avatar"}
+                  src={avatarUrl}
+                  alt={username}
                   width={22}
                   height={22}
                   className={styles.avatar}
                   unoptimized
                 />
               )}
-              <span className={styles.username}>
-                @{session.user.name ?? "user"}
-              </span>
-              <PixelButton
-                variant="ghost"
-                size="sm"
-                onClick={() => signOut()}
-              >
-                ✕
-              </PixelButton>
+              <span className={styles.username}>@{username}</span>
+              <PixelButton variant="ghost" size="sm" onClick={handleSignOut}>✕</PixelButton>
             </div>
           )}
         </div>

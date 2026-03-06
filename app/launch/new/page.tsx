@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSupabaseSession } from "@/lib/auth";
 import ScanlinesOverlay from "@/app/components/ScanlinesOverlay";
 import HUD from "@/app/components/HUD";
 import PixelPanel from "@/app/components/PixelPanel";
@@ -10,10 +9,14 @@ import Link from "next/link";
 import styles from "./launch-new.module.css";
 
 export default async function LaunchNewPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/api/auth/signin?callbackUrl=/launch/new");
+  const { user } = await getSupabaseSession();
+
+  if (!user) {
+    redirect("/auth/signin?next=/launch/new");
   }
+
+  const username  = user.user_metadata?.user_name ?? user.email ?? "user";
+  const avatarUrl = user.user_metadata?.avatar_url ?? "";
 
   return (
     <div className={styles.root}>
@@ -31,29 +34,22 @@ export default async function LaunchNewPage() {
           </p>
         </div>
 
-        <PixelPanel label="NEW TOKEN" variant="default">
-          <LaunchForm />
-        </PixelPanel>
+        <div className={styles.content}>
+          <LaunchForm
+            username={username}
+            avatarUrl={avatarUrl}
+          />
 
-        <div className={styles.note}>
-          <span className="hud-label">ℹ NOTES</span>
-          <ul className={styles.noteList}>
-            <li>No wallet required. Bankr deploys on your behalf.</li>
-            <li>A FeeSplitter contract is deployed first to route fee splits.</li>
-            <li>Max 3 launches per day per account.</li>
-            <li>
-              Bankr Agent API must be enabled at{" "}
-              <a
-                href="https://bankr.bot/settings"
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: "var(--primary)" }}
-              >
-                bankr.bot/settings
-              </a>
-              .
-            </li>
-          </ul>
+          <div className={styles.notes}>
+            <PixelPanel label="REQUIREMENTS" variant="default">
+              <ul className={styles.notesList}>
+                <li>✓ Signed in as <span style={{ color: "var(--cyan)" }}>@{username}</span></li>
+                <li>✓ Bankr agent access enabled</li>
+                <li>✓ Payout EVM address ready</li>
+                <li>✓ Up to 3 launches per day</li>
+              </ul>
+            </PixelPanel>
+          </div>
         </div>
       </main>
     </div>

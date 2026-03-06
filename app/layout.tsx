@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Press_Start_2P } from "next/font/google";
-import SessionWrapper from "@/app/components/SessionWrapper";
-import "@/styles/globals.css";
+import "./globals.css";
 
-const pressStart = Press_Start_2P({
+const pixelFont = Press_Start_2P({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-pixel",
@@ -11,26 +10,14 @@ const pressStart = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: "GitLaunchr",
-  description:
-    "A city of GitHub builders. Launch tokens via Bankr Agent API.",
-  openGraph: {
-    title: "GitLaunchr",
-    description: "Launch tokens on Base.",
-    siteName: "GitLaunchr",
-  },
+  title: "GitLaunchr — Launch tokens on Base",
+  description: "A city of GitHub builders. Launch tokens on Base via Bankr — no wallet required.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={pressStart.variable}>
-      <body>
-        <SessionWrapper>{children}</SessionWrapper>
-      </body>
+    <html lang="en" className={pixelFont.variable}>
+      <body>{children}</body>
     </html>
   );
 }
