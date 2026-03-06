@@ -6,7 +6,8 @@ import PixelPanel from "@/app/components/PixelPanel";
 import PixelButton from "@/app/components/PixelButton";
 import PixelGif from "@/app/components/PixelGif";
 import FaqAccordion from "@/app/components/FaqAccordion";
-import { GithubIcon, XIcon, BaseIcon } from "@/app/components/Icons";
+import { GithubIcon, XIcon, BaseIcon, DiscordIcon } from "@/app/components/Icons";
+import { supabaseAdmin } from "@/lib/supabase";
 import styles from "./page.module.css";
 
 /* ══════════════════════════════════════════════════════════════
@@ -77,7 +78,18 @@ const FAQS = [
 /* ══════════════════════════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════════════════════════ */
-export default function HomePage() {
+async function getStats() {
+  const [tokensRes, usersRes] = await Promise.all([
+    supabaseAdmin.from("launch_requests").select("id", { count: "exact" }).eq("status", "done"),
+    supabaseAdmin.from("users").select("id", { count: "exact" }),
+  ]);
+  return { tokenCount: tokensRes.count ?? 0, userCount: usersRes.count ?? 0 };
+}
+
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const { tokenCount, userCount } = await getStats();
   return (
     <div className={styles.root}>
       <ScanlinesOverlay />
@@ -90,12 +102,12 @@ export default function HomePage() {
         <HUD />
 
         <section className={styles.hero}>
-          <div className={styles.heroPre}>BUILT ON BASE · POWERED BY BANKR</div>
+          <div className={styles.heroPre}>PREMIUM LAUNCHPAD · FOR GITHUB ACCOUNTS</div>
 
           <h1 className={styles.heroTitle}>
             <span className={styles.heroLine1}>GITLAUNCHR</span>
             <span className={styles.heroLine2}>
-              Launch tokens.<br />Keep your fees.
+              Launch tokens.<br />No more anon devs.
             </span>
           </h1>
 
@@ -115,13 +127,13 @@ export default function HomePage() {
 
           <div className={styles.heroStats}>
             <div className={styles.heroStat}>
-              <span className={styles.heroStatVal} style={{ color: "var(--success)" }}>1,284</span>
+              <span className={styles.heroStatVal} style={{ color: "var(--success)" }}>{tokenCount.toLocaleString()}</span>
               <span className={styles.heroStatLabel}>Tokens launched</span>
             </div>
             <div className={styles.heroStatDiv} />
             <div className={styles.heroStat}>
-              <span className={styles.heroStatVal} style={{ color: "var(--warning)" }}>$2.1M</span>
-              <span className={styles.heroStatLabel}>Fee volume</span>
+              <span className={styles.heroStatVal} style={{ color: "var(--warning)" }}>{userCount.toLocaleString()}</span>
+              <span className={styles.heroStatLabel}>Builders</span>
             </div>
             <div className={styles.heroStatDiv} />
             <div className={styles.heroStat}>
@@ -144,7 +156,7 @@ export default function HomePage() {
           <div className={styles.sectionHead}>
             <span className={styles.sectionTag}>// HOW IT WORKS</span>
             <h2 className={styles.sectionTitle}>From GitHub to Base in 4 steps</h2>
-            <p className={styles.sectionSub}>No MetaMask. No private keys in the browser. No manual gas. Just sign in and launch.</p>
+            <p className={styles.sectionSub}>No private keys in the browser. Just sign in and launch.</p>
           </div>
 
           <div className={styles.timeline}>
@@ -327,16 +339,15 @@ export default function HomePage() {
             <span className={`${styles.footerLogo} glow-primary`}>GITLAUNCHR</span>
             <p className={styles.footerDesc}>
               A city of GitHub builders.<br />
-              Launch tokens whit GitHub. Keep your fees.
+              Launch tokens on Base.
             </p>
             <div className={styles.footerSocials}>
-              <a href="https://github.com" target="_blank" rel="noreferrer" className={styles.socialBtn}>
+              <a href="https://github.com/GitLaunchr" target="_blank" rel="noreferrer" className={styles.socialBtn}>
                 <GithubIcon size={16} color="var(--muted)" /><span>GitHub</span>
               </a>
               <a href="https://x.com/GitLaunchr" target="_blank" rel="noreferrer" className={styles.socialBtn}>
-                <XIcon size={16} color="var(--muted)" /><span>X</span>
+                <XIcon size={16} color="var(--muted)" /><span>X / Twitter</span>
               </a>
-
             </div>
           </div>
 
@@ -363,7 +374,7 @@ export default function HomePage() {
               <span>Base Mainnet</span>
             </div>
             <div className={styles.footerMeta}>Chain ID: 8453</div>
-            <div className={styles.footerMeta}>RPC: mainnet.base.org</div>
+            <div className={styles.footerMeta}>RPC: Ankr</div>
             <div className={styles.footerMeta}>Explorer: basescan.org</div>
           </div>
         </div>
