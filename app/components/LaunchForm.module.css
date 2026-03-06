@@ -59,3 +59,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+.inputPrefix {
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--border);
+  background: var(--input-bg, rgba(0,0,0,0.4));
+  transition: border-color 0.15s;
+}
+.inputPrefix:focus-within { border-color: var(--primary); }
+.inputPrefix input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  outline: none;
+  padding: 10px 12px;
+}
+.prefix {
+  font-size: 11px;
+  color: var(--primary);
+  padding: 0 0 0 12px;
+  user-select: none;
+}
+.hint {
+  font-size: 6px;
+  color: var(--muted);
+  line-height: 2;
+  margin-top: 4px;
+  display: block;
+}
+.hint a { color: var(--primary); text-decoration: none; }
+.hint a:hover { text-decoration: underline; }

@@ -6,10 +6,6 @@ import styles from "./LaunchForm.module.css";
 import PixelButton from "./PixelButton";
 import PixelPanel from "./PixelPanel";
 
-function isValidEVMAddress(addr: string): boolean {
-  return /^0x[0-9a-fA-F]{40}$/.test(addr);
-}
-
 function isValidSymbol(sym: string): boolean {
   return /^[A-Z]{2,8}$/.test(sym);
 }
@@ -17,19 +13,17 @@ function isValidSymbol(sym: string): boolean {
 interface FormState {
   name: string;
   symbol: string;
-  creatorPayout: string;
+  twitterHandle: string;
   description: string;
   website: string;
-  twitter: string;
 }
 
 const INIT: FormState = {
   name: "",
   symbol: "",
-  creatorPayout: "",
+  twitterHandle: "",
   description: "",
   website: "",
-  twitter: "",
 };
 
 export default function LaunchForm() {
@@ -51,8 +45,8 @@ export default function LaunchForm() {
     if (!form.name.trim()) newErrors.name = "Required";
     if (!isValidSymbol(form.symbol))
       newErrors.symbol = "2-8 uppercase letters only";
-    if (!isValidEVMAddress(form.creatorPayout))
-      newErrors.creatorPayout = "Must be a valid 0x address";
+    if (!form.twitterHandle.trim())
+      newErrors.twitterHandle = "Required — your @twitter handle to receive fees";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -67,7 +61,10 @@ export default function LaunchForm() {
       const res = await fetch("/api/launch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          twitterHandle: form.twitterHandle.replace(/^@/, ""),
+        }),
       });
       const data = await res.json();
 
@@ -119,100 +116,59 @@ export default function LaunchForm() {
 
       {/* Fields */}
       <div className={styles.group}>
-        <label className="hud-label" htmlFor="name">
-          TOKEN NAME *
-        </label>
+        <label className="hud-label" htmlFor="name">TOKEN NAME *</label>
         <input
-          id="name"
-          type="text"
-          value={form.name}
-          onChange={set("name")}
-          placeholder="e.g. BuildCity Token"
-          maxLength={64}
-          autoComplete="off"
+          id="name" type="text" value={form.name} onChange={set("name")}
+          placeholder="e.g. BuildCity Token" maxLength={64} autoComplete="off"
         />
         {errors.name && <span className={styles.err}>{errors.name}</span>}
       </div>
 
       <div className={styles.group}>
-        <label className="hud-label" htmlFor="symbol">
-          SYMBOL * (2–8 uppercase letters)
-        </label>
+        <label className="hud-label" htmlFor="symbol">SYMBOL * (2–8 uppercase letters)</label>
         <input
-          id="symbol"
-          type="text"
-          value={form.symbol}
-          onChange={(e) =>
-            set("symbol")({
-              ...e,
-              target: { ...e.target, value: e.target.value.toUpperCase() },
-            })
-          }
-          placeholder="e.g. BCT"
-          maxLength={8}
-          autoComplete="off"
+          id="symbol" type="text" value={form.symbol}
+          onChange={(e) => set("symbol")({ ...e, target: { ...e.target, value: e.target.value.toUpperCase() } })}
+          placeholder="e.g. BCT" maxLength={8} autoComplete="off"
         />
-        {errors.symbol && (
-          <span className={styles.err}>{errors.symbol}</span>
-        )}
+        {errors.symbol && <span className={styles.err}>{errors.symbol}</span>}
       </div>
 
       <div className={styles.group}>
-        <label className="hud-label" htmlFor="payout">
-          CREATOR PAYOUT ADDRESS * (EVM)
+        <label className="hud-label" htmlFor="twitterHandle">
+          TWITTER HANDLE * — fees land here, claim at bankr.bot
         </label>
-        <input
-          id="payout"
-          type="text"
-          value={form.creatorPayout}
-          onChange={set("creatorPayout")}
-          placeholder="0x..."
-          autoComplete="off"
-        />
-        {errors.creatorPayout && (
-          <span className={styles.err}>{errors.creatorPayout}</span>
-        )}
+        <div className={styles.inputPrefix}>
+          <span className={styles.prefix}>@</span>
+          <input
+            id="twitterHandle" type="text"
+            value={form.twitterHandle.replace(/^@/, "")}
+            onChange={(e) => set("twitterHandle")({ ...e, target: { ...e.target, value: e.target.value.replace(/^@/, "") } })}
+            placeholder="yourhandle"
+            autoComplete="off"
+          />
+        </div>
+        <span className={styles.hint}>
+          Trading fees (57% creator share) go to your Twitter wallet on Bankr.
+          Claim anytime at <a href="https://bankr.bot" target="_blank" rel="noreferrer">bankr.bot</a>
+        </span>
+        {errors.twitterHandle && <span className={styles.err}>{errors.twitterHandle}</span>}
       </div>
 
       <div className={styles.group}>
-        <label className="hud-label" htmlFor="desc">
-          DESCRIPTION (optional)
-        </label>
+        <label className="hud-label" htmlFor="desc">DESCRIPTION (optional)</label>
         <textarea
-          id="desc"
-          value={form.description}
-          onChange={set("description")}
-          rows={3}
-          placeholder="What is this token for?"
-          maxLength={512}
+          id="desc" value={form.description} onChange={set("description")}
+          rows={3} placeholder="What is this token for?" maxLength={512}
         />
       </div>
 
-      <div className={styles.row2}>
-        <div className={styles.group}>
-          <label className="hud-label" htmlFor="website">
-            WEBSITE
-          </label>
-          <input
-            id="website"
-            type="url"
-            value={form.website}
-            onChange={set("website")}
-            placeholder="https://..."
-          />
-        </div>
-        <div className={styles.group}>
-          <label className="hud-label" htmlFor="twitter">
-            TWITTER
-          </label>
-          <input
-            id="twitter"
-            type="text"
-            value={form.twitter}
-            onChange={set("twitter")}
-            placeholder="@handle"
-          />
-        </div>
+      <div className={styles.group}>
+        <label className="hud-label" htmlFor="website">WEBSITE (optional)</label>
+        <input
+          id="website" type="url" value={form.website} onChange={set("website")}
+          placeholder="https://..."
+        />
       </div>
 
       {apiError && (
