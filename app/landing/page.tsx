@@ -365,7 +365,7 @@ export default function LandingPage() {
             <span className={`${styles.footerLogo} glow-primary`}>GITLAUNCHR</span>
             <p className={styles.footerDesc}>
               A city of GitHub builders.<br />
-              Launch tokens on Base. Keep your fees.
+              Launch tokens on Base.
             </p>
             <div className={styles.footerSocials}>
               <a href="https://github.com/GitLaunchr" target="_blank" rel="noreferrer"

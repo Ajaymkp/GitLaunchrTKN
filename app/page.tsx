@@ -102,18 +102,17 @@ export default async function HomePage() {
         <HUD />
 
         <section className={styles.hero}>
-          <div className={styles.heroPre}>BUILT ON BASE · POWERED BY BANKR</div>
+          <div className={styles.heroPre}>PREMIUM LAUNCHPAD · FOR GITHUB</div>
 
           <h1 className={styles.heroTitle}>
             <span className={styles.heroLine1}>GITLAUNCHR</span>
             <span className={styles.heroLine2}>
-              Launch tokens.<br />Keep your fees.
+              Launch tokens.<br />No more anon devs.
             </span>
           </h1>
 
           <p className={styles.heroSub}>
-            A pixel city for GitHub builders. Sign in once, get a FeeSplitter
-            deployed, and go live on Base — no wallet required.
+            Sign in once, deployed, and go live on Base — no wallet required.
           </p>
 
           <div className={styles.heroCtas}>
