@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing BANKR_API_KEY" }, { status: 500 });
   }
 
-  const prompt = `Launch a token called "${name}" with symbol "${symbol}" on Base. Set the fee recipient to Twitter user @${twitterHandle}.`;
+  const prompt = `Launch a token called "${name}" with symbol "${symbol}" on Base whit a liquidity pool. Set the fee recipient to Twitter user @${twitterHandle}.`;
 
   const bankrRes = await fetch("https://api.bankr.bot/agent/prompt", {
     method:  "POST",
