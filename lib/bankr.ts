@@ -7,8 +7,9 @@ interface PromptResponse {
 interface JobStatusResponse {
   jobId: string;
   status: "pending" | "running" | "completed" | "failed";
-  output?: string;
-  error?: string;
+  response?: string; // Bankr returns freeform text here
+  output?:   string; // fallback alias some versions use
+  error?:    string;
 }
 
 function getHeaders(): Record<string, string> {
@@ -22,23 +23,24 @@ function getHeaders(): Record<string, string> {
 
 /**
  * Build the Bankr prompt for deploying a token on Base.
- * Keep this minimal and deterministic.
  */
 export function buildBankrPrompt(
   name: string,
   symbol: string,
-  splitterAddress: string
+  splitterAddress: string,
+  githubUsername: string
 ): string {
+  const githubUrl = `https://github.com/${githubUsername}`;
   return (
     `Deploy a token called ${name} with symbol ${symbol} on Base. ` +
     `Set the fee beneficiary to ${splitterAddress}. ` +
+    `Set the website to ${githubUrl}. ` +
     `If additional info is needed, proceed with sensible defaults.`
   );
 }
 
 /**
  * POST /agent/prompt — submit a deployment job to Bankr.
- * Throws with code BANKR_AGENT_DISABLED on 403.
  */
 export async function submitBankrPrompt(prompt: string): Promise<string> {
   const res = await fetch(`${BANKR_API_BASE}/agent/prompt`, {
@@ -88,10 +90,44 @@ export async function getBankrJobStatus(
 }
 
 /**
- * Try to extract a token contract address from the Bankr job output.
- * The output is freeform text, so we look for a 0x EVM address.
+ * Extract the token contract address from Bankr's freeform response text.
+ *
+ * Bankr returns natural language like:
+ *   "Your token MyToken (SYMBOL) has been deployed at 0xABC...123 on Base."
+ *
+ * Strategy: collect ALL 0x addresses in the text, then exclude known
+ * non-token addresses (splitter, treasury, etc.) and return the last one —
+ * Bankr typically mentions the token address last.
  */
-export function extractTokenAddress(output: string): string | null {
-  const match = output.match(/0x[0-9a-fA-F]{40}/);
-  return match ? match[0] : null;
+export function extractTokenAddress(
+  text: string,
+  excludeAddresses: string[] = []
+): string | null {
+  const lower = text.toLowerCase();
+  const exclude = excludeAddresses.map((a) => a.toLowerCase());
+
+  // Find all EVM addresses in the text
+  const all = [...text.matchAll(/0x[0-9a-fA-F]{40}/g)].map((m) => m[0]);
+
+  if (all.length === 0) return null;
+
+  // Filter out excluded addresses
+  const candidates = all.filter((a) => !exclude.includes(a.toLowerCase()));
+
+  if (candidates.length === 0) return all[all.length - 1]; // fallback: last address
+
+  // Prefer addresses near keywords like "deployed", "token", "contract"
+  const keywords = ["deployed at", "token address", "contract address", "token:", "address:"];
+  for (const kw of keywords) {
+    const idx = lower.indexOf(kw);
+    if (idx !== -1) {
+      // Find the first address after this keyword
+      const after = text.slice(idx);
+      const m = after.match(/0x[0-9a-fA-F]{40}/);
+      if (m && !exclude.includes(m[0].toLowerCase())) return m[0];
+    }
+  }
+
+  // Default: last candidate
+  return candidates[candidates.length - 1];
 }

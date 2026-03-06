@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   // ── Submit Bankr job ──────────────────────────────────
   let bankrJobId: string;
   try {
-    const prompt = buildBankrPrompt(name, symbol, splitterAddress);
+    const prompt = buildBankrPrompt(name, symbol, splitterAddress, username);
     bankrJobId   = await submitBankrPrompt(prompt);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Bankr error";
