@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseSession } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { deployTokenViaBankr } from "@/lib/bankr";
 import { checkLaunchRateLimit } from "@/lib/rateLimit";
 import { isValidSymbol, sanitizeString } from "@/lib/validation";
+
+export const maxDuration = 60; // Vercel: allow up to 60s for this route
 
 export async function POST(req: NextRequest) {
   const { user } = await getSupabaseSession();
@@ -12,25 +13,22 @@ export async function POST(req: NextRequest) {
   const githubUsername = user.user_metadata?.user_name ?? "unknown";
   const avatarUrl      = user.user_metadata?.avatar_url ?? undefined;
 
-  // ── Get or create DB user ─────────────────────────────
   let { data: dbUser } = await supabaseAdmin
     .from("users").select("id").eq("github_id", githubUsername).single();
 
   if (!dbUser) {
     const { data: newUser } = await supabaseAdmin
       .from("users")
-      .upsert({ github_id: githubUsername, username: githubUsername, avatar_url: user.user_metadata?.avatar_url ?? "" }, { onConflict: "github_id" })
+      .upsert({ github_id: githubUsername, username: githubUsername, avatar_url: avatarUrl ?? "" }, { onConflict: "github_id" })
       .select("id").single();
     dbUser = newUser;
   }
 
   if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 403 });
 
-  // ── Rate limit ────────────────────────────────────────
   const { allowed, remaining } = await checkLaunchRateLimit(dbUser.id);
   if (!allowed) return NextResponse.json({ error: "Daily limit reached (3/day). Resets at UTC midnight.", remaining: 0 }, { status: 429 });
 
-  // ── Validate body ─────────────────────────────────────
   let body: { name?: string; symbol?: string; twitterHandle?: string; description?: string; website?: string; };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
@@ -41,9 +39,8 @@ export async function POST(req: NextRequest) {
 
   if (!name)                  return NextResponse.json({ error: "Name is required" }, { status: 400 });
   if (!isValidSymbol(symbol)) return NextResponse.json({ error: "Symbol must be 2–8 uppercase letters" }, { status: 400 });
-  if (!twitterHandle)         return NextResponse.json({ error: "Twitter handle is required for fee payout" }, { status: 400 });
+  if (!twitterHandle)         return NextResponse.json({ error: "Twitter handle is required" }, { status: 400 });
 
-  // ── Create DB row ─────────────────────────────────────
   const { data: launch, error: insertErr } = await supabaseAdmin
     .from("launch_requests")
     .insert({
@@ -61,11 +58,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "DB error" }, { status: 500 });
   }
 
-  // ── Deploy via Bankr Partner API ──────────────────────
+  // Submit to Bankr and wait (up to 60s)
   try {
+    const { deployTokenViaBankr } = await import("@/lib/bankr");
     const result = await deployTokenViaBankr({
-      name, symbol,
-      twitterHandle,
+      name, symbol, twitterHandle,
       description: sanitizeString(body.description ?? ""),
       website:     body.website ?? "",
       githubUsername,
@@ -79,7 +76,7 @@ export async function POST(req: NextRequest) {
       updated_at:    new Date().toISOString(),
     }).eq("id", launch.id);
 
-    return NextResponse.json({ id: launch.id, tokenAddress: result.tokenAddress, txHash: result.txHash, remaining: remaining - 1 });
+    return NextResponse.json({ id: launch.id, tokenAddress: result.tokenAddress, remaining: remaining - 1 });
 
   } catch (err: unknown) {
     const msg  = err instanceof Error ? err.message : "Deploy error";
