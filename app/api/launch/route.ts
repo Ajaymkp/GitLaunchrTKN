@@ -4,8 +4,6 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { checkLaunchRateLimit } from "@/lib/rateLimit";
 import { isValidSymbol, sanitizeString } from "@/lib/validation";
 
-export const maxDuration = 60; // Vercel: allow up to 60s for this route
-
 export async function POST(req: NextRequest) {
   const { user } = await getSupabaseSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,30 +56,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "DB error" }, { status: 500 });
   }
 
-  // Submit to Bankr and wait (up to 60s)
-  try {
-    const { deployTokenViaBankr } = await import("@/lib/bankr");
-    const result = await deployTokenViaBankr({
-      name, symbol, twitterHandle,
-      description: sanitizeString(body.description ?? ""),
-      website:     body.website ?? "",
-      githubUsername,
-      avatarUrl,
-    });
-
-    await supabaseAdmin.from("launch_requests").update({
-      token_address: result.tokenAddress,
-      bankr_job_id:  result.activityId,
-      status:        "done",
-      updated_at:    new Date().toISOString(),
-    }).eq("id", launch.id);
-
-    return NextResponse.json({ id: launch.id, tokenAddress: result.tokenAddress, remaining: remaining - 1 });
-
-  } catch (err: unknown) {
-    const msg  = err instanceof Error ? err.message : "Deploy error";
-    const code = (err as { code?: string }).code;
+  // ── Submit to Bankr — fire and forget, don't wait ─────
+  const apiKey = process.env.BANKR_API_KEY;
+  if (!apiKey) {
     await supabaseAdmin.from("launch_requests").update({ status: "failed" }).eq("id", launch.id);
-    return NextResponse.json({ error: msg, code }, { status: code ? 403 : 500 });
+    return NextResponse.json({ error: "Missing BANKR_API_KEY" }, { status: 500 });
   }
+
+  const prompt = `Launch a token called "${name}" with symbol "${symbol}" on Base. Set the fee recipient to Twitter user @${twitterHandle}.`;
+
+  const bankrRes = await fetch("https://api.bankr.bot/agent/prompt", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body:    JSON.stringify({ prompt }),
+  });
+
+  if (!bankrRes.ok) {
+    const text = await bankrRes.text().catch(() => "");
+    await supabaseAdmin.from("launch_requests").update({ status: "failed" }).eq("id", launch.id);
+    return NextResponse.json({ error: `Bankr error: ${text}` }, { status: 500 });
+  }
+
+  const { jobId } = await bankrRes.json();
+
+  await supabaseAdmin.from("launch_requests").update({
+    bankr_job_id: jobId,
+    status:       "deploying",
+  }).eq("id", launch.id);
+
+  // Return immediately — browser polls /api/launch/[id]/status
+  return NextResponse.json({ id: launch.id, jobId, remaining: remaining - 1 });
 }
