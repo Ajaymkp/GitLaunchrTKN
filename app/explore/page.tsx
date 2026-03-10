@@ -5,11 +5,13 @@ import HUD from "@/app/components/HUD";
 import PixelPanel from "@/app/components/PixelPanel";
 import PixelButton from "@/app/components/PixelButton";
 import { GithubIcon } from "@/app/components/Icons";
+import { unstable_noStore as noStore } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTokensMarketData } from "@/lib/tokenData";
 import styles from "./explore.module.css";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 interface TokenRow {
   id: string;
@@ -22,6 +24,7 @@ interface TokenRow {
 }
 
 async function getLiveTokens(): Promise<TokenRow[]> {
+  noStore();
   const { data, error } = await supabaseAdmin
     .from("launch_requests")
     .select("id, name, symbol, token_address, creator_payout, created_at, users(username, avatar_url)")
